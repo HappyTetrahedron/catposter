@@ -8,7 +8,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 
 CATREGEXP='(Meow(,? meow){0,7}[.?!] ){1,3}(Pur{2,5} (pur{2,5} ){0,2})?(\\^\\.\\^|:\\)|:D|:cat(2)?:|\\^\\^|:3)?'
-#CATREGEXP='(Meow(,? meow){0,7}[.?!] ){1,3}(\\^\\.\\^|:\\)|D:|:D|:cat:|\\^\\^)?'
 
 STREAMID="0"
 LOGIN="LOGIN-UUID"
