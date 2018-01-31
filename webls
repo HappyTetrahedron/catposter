@@ -1,0 +1,32 @@
+#!/bin/bash
+
+urls=()
+
+testurl(){
+    depth="${depth:-0}"
+    if (( $depth < $maxdepth ))
+    then
+        for i in $( curl -s "$1" | grep -oP 'href="[^?\./(http)(www)].*?"' | sed -e 's/href=//' -e 's/"//g' )
+        do
+            nexturl="$1$i"
+            urls+=( "$nexturl" )
+
+            if [[ $nexturl == */ ]]
+            then
+                (( depth += 1 ))
+                testurl "$nexturl" 
+                (( depth -= 1 ))
+            fi
+        done
+    fi
+}
+
+currurl="$1"
+maxdepth="${2:-1}"
+
+testurl "$currurl"
+
+for i in ${urls[@]}
+do
+    echo "$i"
+done

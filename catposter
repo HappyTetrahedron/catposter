@@ -1,0 +1,138 @@
+#!/bin/bash
+
+# |\___
+# |O.o/
+# (   )
+#   U
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+
+CATREGEXP='(Meow(,? meow){0,7}[.?!] ){1,3}(Pur{2,5} (pur{2,5} ){0,2})?(\\^\\.\\^|:\\)|:D|:cat(2)?:|\\^\\^|:3)?'
+#CATREGEXP='(Meow(,? meow){0,7}[.?!] ){1,3}(\\^\\.\\^|:\\)|D:|:D|:cat:|\\^\\^)?'
+
+STREAMID="0"
+LOGIN="LOGIN-UUID"
+CSRF="CSRF-TOKEN"
+TENANTURL="TENANT-URL"
+
+[[ -e config.sh ]] && source config.sh
+
+print_usage(){
+    echo "Usage: $0 [-m MEOWREGEX] [-p POSTTITLEREGEX] [-l LOGINTOKEN] [-c CSRFTOKEN] [-s STREAMID] [-t TENANTURL]"
+}
+
+DEBUG="false"
+HTTPS="true"
+while getopts 'h?dum:l:c:s:t:p:' opt
+do
+    case "$opt" in
+    h|\?)
+        print_usage
+        exit 0
+        ;;
+    m)
+        CATREGEXP="$OPTARG"
+        ;;
+    l) 
+        LOGIN="$OPTARG"
+        ;;
+    c)
+        CSRF="$OPTARG"
+        ;;
+    s)
+        STREAMID="$OPTARG"
+        ;;
+    t)
+        TENANTURL="$OPTARG"
+        ;;
+    p)
+        TITLEREGEXP="$OPTARG"
+        ;;
+    u)
+	HTTPS="false"
+        ;;
+    d)
+	DEBUG="true"
+        ;;
+    esac
+done
+
+if [[ -z $TITLEREGEXP ]]
+then
+    TITLEREGEXP="$CATREGEXP"
+fi
+
+meow(){
+node <<script
+const RandExp = require('randexp');
+const randexp = new RandExp('$1');
+console.log(randexp.gen());
+script
+}
+
+CURLOPTS=(-H 'Cookie: login='"$LOGIN"'' -H 'Origin: http'$( $HTTPS && echo s )'://'"$TENANTURL"'' -H 'X-CSRF-Token: '"$CSRF"'' -H 'Accept-Language: en-US,en;q=0.9' -H 'Authorization: Cookie' -H 'X-Requested-With: XMLHttpRequest' -H 'Connection: keep-alive' -H 'Pragma: no-cache' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36' -H 'X-BKPR-App-Name: app-web' -H 'Accept: application/json' -H 'Cache-Control: no-cache' -H 'Referer: http'$( $HTTPS && echo s)'://'"$TENANTURL"'/stream/random')
+
+echo "Downloading image..."
+
+sel=$(( RANDOM % 10 ))
+
+case "$sel" in
+# Cat API
+1|2|3|6|7|8|9)
+    IMAGEURL="$( curl $( $DEBUG || echo '-s') http://thecatapi.com/api/images/get?format=xml\&type=png\&api_key=MTQwMTIy | grep -oe '<url>.*</url>' | sed -e 's/<url>//g' -e 's/<\/url>//g' )"
+    ext="$( echo $IMAGEURL | sed -e 's/.*\.//' )"
+    wget --quiet "$IMAGEURL" -O image."$ext"
+    ;;
+
+# GaMERCaT
+0|4)
+    echo "Today, I'll do a GaMERCaT post."
+    while :
+    do
+        year="$( $DIR/webls http://thegamercat.com/wp-content/uploads/ | shuf -n 1 )"
+        month="$( $DIR/webls "$year" | shuf -n 1 )"
+        img="$( $DIR/webls "$month" | grep -P 'gamercat[^/]*\.(jpg|png|gif)' | grep -vP '\d\dx\d\d' | shuf -n 1 )"
+        if [[ -n $img ]]
+        then
+            break
+        fi
+    done
+
+    ext="$( echo $img | sed -e 's/.*\.//' )"
+    wget -O image.$ext -q $img
+    ;;
+5)
+    echo "Let's do Business Cat today."
+    while :
+    do
+        year="$( $DIR/webls http://www.businesscat.happyjar.com/wp-content/uploads/ | grep -P '\d\d\d\d' | shuf -n 1 )"
+        month="$( $DIR/webls "$year" | shuf -n 1 )"
+        img="$( $DIR/webls "$month" | grep -vP '\d\dx\d\d' | grep -vP '_...?(-.{1,4})?\.' | shuf -n 1 )"
+        if [[ -n $img ]]
+        then
+            break
+        fi
+    done
+
+    ext="$( echo $img | sed -e 's/.*\.//' )"
+    wget -O image.$ext -q $img
+    ;;
+esac
+
+echo "It's a $ext image!"
+
+
+echo "Uploading image..."
+IMAGERESP="$( curl $( $DEBUG || echo '-s' ) 'http'$( $HTTPS && echo s)'://'"$TENANTURL"'/api/2/photos.json?response=html' "${CURLOPTS[@]}" -H 'Content-Type: multipart/form-data; boundary=----WebKitFormBoundary0AiRf8qodrGlBEb2' -F "photo=@image.$ext;type=image/$ext" )"
+$DEBUG && echo $IMAGERESP
+
+echo "Thinking of a witty post title..."
+POSTTITLE="$(meow "$TITLEREGEXP")"
+POSTTEXT="$(meow "$CATREGEXP")"
+
+POSTDATA='{"id":null,"uuid":"'"$(uuidgen)"'","source":"beekeeper","created":"'"$(date -Is)"'","edited":null,"user_id":"61dcadf1-0297-430d-ab42-24fe42336202","name":"5","display_name":"Sir Fluffington","display_name_extension":null,"avatar":"https://d4up58j5h8ukq.cloudfront.net/ec4ef9f1-f54b-4e0a-8c98-afc9aa0a9033","comment_count":0,"comments":[],"liked_by_user":false,"sticky":false,"locked":false,"unread":false,"reported_by_user":false,"subscribed_by_user":false,"like_count":0,"anonymous":true,"report_count":0,"digest":0,"scheduled_at":null,"isPoll":false,"text":"'"$POSTTEXT"'","title":"'"$POSTTITLE"'","labels":[],"options":[],"streamid":'"$STREAMID"',"twitter":false,"facebook":false,"links":[],"status":"prepared","mentions":[],"mention_details":{},"media":['"$IMAGERESP"'],"byUser":true}'
+
+echo "Posting..."
+curl $( $DEBUG || echo '-s') 'http'$( $HTTPS && echo s )'://'"$TENANTURL"'/api/2/posts' "${CURLOPTS[@]}" -H 'Content-Type: application/json' --data-binary "$POSTDATA" > $( $DEBUG && echo "-" || echo "/dev/null") || echo 'Oh no!'
+
+echo "Done!"
