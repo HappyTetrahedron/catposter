@@ -14,7 +14,7 @@ LOGIN="LOGIN-UUID"
 CSRF="CSRF-TOKEN"
 TENANTURL="TENANT-URL"
 
-[[ -e config.sh ]] && source config.sh && echo "Config loaded."
+[[ -e config.sh ]] && source "$DIR"/config.sh && echo "Config loaded."
 
 print_usage(){
     echo "Usage: $0 [-m MEOWREGEX] [-p POSTTITLEREGEX] [-l LOGINTOKEN] [-c CSRFTOKEN] [-s STREAMID] [-t TENANTURL]"
