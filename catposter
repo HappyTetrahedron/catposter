@@ -69,6 +69,17 @@ console.log(randexp.gen());
 script
 }
 
+$DEBUG && {
+echo CATREGEXP "$CATREGEXP"
+echo LOGIN "$LOGIN"
+echo CSRF "$CSRF"
+echo STREAMID "$STREAMID"
+echo TENANTURL "$TENANTURL"
+echo TITLEREGEXP "$TITLEREGEXP"
+echo HTTPS "$HTTPS"
+echo DEBUG "$DEBUG"
+}
+
 CURLOPTS=(-H 'Cookie: login='"$LOGIN"'' -H 'Origin: http'$( $HTTPS && echo s )'://'"$TENANTURL"'' -H 'X-CSRF-Token: '"$CSRF"'' -H 'Accept-Language: en-US,en;q=0.9' -H 'Authorization: Cookie' -H 'X-Requested-With: XMLHttpRequest' -H 'Connection: keep-alive' -H 'Pragma: no-cache' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36' -H 'X-BKPR-App-Name: app-web' -H 'Accept: application/json' -H 'Cache-Control: no-cache' -H 'Referer: http'$( $HTTPS && echo s)'://'"$TENANTURL"'/stream/random')
 
 echo "Downloading image..."
@@ -128,6 +139,8 @@ $DEBUG && echo $IMAGERESP
 echo "Thinking of a witty post title..."
 POSTTITLE="$(meow "$TITLEREGEXP")"
 POSTTEXT="$(meow "$CATREGEXP")"
+$DEBUG && echo $POSTTITLE
+$DEBUG && echo $POSTTEXT
 
 POSTDATA='{"id":null,"uuid":"'"$(uuidgen)"'","source":"beekeeper","created":"'"$(date -Is)"'","edited":null,"user_id":"61dcadf1-0297-430d-ab42-24fe42336202","name":"5","display_name":"Sir Fluffington","display_name_extension":null,"avatar":"https://d4up58j5h8ukq.cloudfront.net/ec4ef9f1-f54b-4e0a-8c98-afc9aa0a9033","comment_count":0,"comments":[],"liked_by_user":false,"sticky":false,"locked":false,"unread":false,"reported_by_user":false,"subscribed_by_user":false,"like_count":0,"anonymous":true,"report_count":0,"digest":0,"scheduled_at":null,"isPoll":false,"text":"'"$POSTTEXT"'","title":"'"$POSTTITLE"'","labels":[],"options":[],"streamid":'"$STREAMID"',"twitter":false,"facebook":false,"links":[],"status":"prepared","mentions":[],"mention_details":{},"media":['"$IMAGERESP"'],"byUser":true}'
 
