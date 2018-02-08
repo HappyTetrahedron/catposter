@@ -7,7 +7,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 
-CATREGEXP='(Meow(,? meow){0,7}[.?!] ){1,3}(Pur{2,5} (pur{2,5} ){0,2})?(\\^\\.\\^|:\\)|:D|:cat(2)?:|\\^\\^|:3)?'
+CATREGEXP='(Meow(,? meow){0,4}[.?!] ){1,2}(Pur{2,3} (pur{2,3} ){0,2})?(\\^\\.\\^|:\\)|:D|:cat(2)?:|\\^\\^|:3)?'
 
 STREAMID="0"
 LOGIN="LOGIN-UUID"
@@ -82,16 +82,24 @@ echo DEBUG "$DEBUG"
 
 CURLOPTS=(-H 'Cookie: login='"$LOGIN"'' -H 'Origin: http'$( $HTTPS && echo s )'://'"$TENANTURL"'' -H 'X-CSRF-Token: '"$CSRF"'' -H 'Accept-Language: en-US,en;q=0.9' -H 'Authorization: Cookie' -H 'X-Requested-With: XMLHttpRequest' -H 'Connection: keep-alive' -H 'Pragma: no-cache' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36' -H 'X-BKPR-App-Name: app-web' -H 'Accept: application/json' -H 'Cache-Control: no-cache' -H 'Referer: http'$( $HTTPS && echo s)'://'"$TENANTURL"'/stream/random')
 
-echo "Downloading image..."
 
 sel=$(( RANDOM % 10 ))
+num_img=1
+exts=('dummy')
 
 case "$sel" in
 # Cat API
 1|2|3|6|7|8|9)
-    IMAGEURL="$( curl $( $DEBUG || echo '-s') http://thecatapi.com/api/images/get?format=xml\&type=png\&api_key=MTQwMTIy | grep -oe '<url>.*</url>' | sed -e 's/<url>//g' -e 's/<\/url>//g' )"
-    ext="$( echo $IMAGEURL | sed -e 's/.*\.//' )"
-    wget --quiet "$IMAGEURL" -O image."$ext"
+    num_img=$(( RANDOM % 4 % 3 + 1 ))
+    for i in $( seq 1 $num_img )
+    do
+        echo "Downloading image..."
+        IMAGEURL="$( curl $( $DEBUG || echo '-s') http://thecatapi.com/api/images/get?format=xml\&type=png\&api_key=MTQwMTIy | grep -oe '<url>.*</url>' | sed -e 's/<url>//g' -e 's/<\/url>//g' )"
+        ext="$( echo $IMAGEURL | sed -e 's/.*\.//' )"
+        wget --quiet "$IMAGEURL" -O image$i."$ext"
+        $DEBUG && echo "It's a $ext image!"
+        exts+=("$ext")
+    done
     ;;
 
 # GaMERCaT
@@ -109,7 +117,8 @@ case "$sel" in
     done
 
     ext="$( echo $img | sed -e 's/.*\.//' )"
-    wget -O image.$ext -q $img
+    wget -O image1.$ext -q $img
+    exts+=("$ext")
     ;;
 5)
     echo "Let's do Business Cat today."
@@ -125,16 +134,26 @@ case "$sel" in
     done
 
     ext="$( echo $img | sed -e 's/.*\.//' )"
-    wget -O image.$ext -q $img
+    wget -O image1.$ext -q $img
+    exts+=("$ext")
     ;;
 esac
 
-echo "It's a $ext image!"
-
-
 echo "Uploading image..."
-IMAGERESP="$( curl $( $DEBUG || echo '-s' ) 'http'$( $HTTPS && echo s)'://'"$TENANTURL"'/api/2/photos.json?response=html' "${CURLOPTS[@]}" -H 'Content-Type: multipart/form-data; boundary=----WebKitFormBoundary0AiRf8qodrGlBEb2' -F "photo=@image.$ext;type=image/$ext" )"
-$DEBUG && echo $IMAGERESP
+for i in $( seq 1 $num_img )
+do
+    $DEBUG && echo Uploading ${exts[$i]} image
+    IMAGERESP="$( curl $( $DEBUG || echo '-s' ) 'http'$( $HTTPS && echo s)'://'"$TENANTURL"'/api/2/photos.json?response=html' "${CURLOPTS[@]}" -H 'Content-Type: multipart/form-data; boundary=----WebKitFormBoundary0AiRf8qodrGlBEb2' -F "photo=@image$i.${exts[$i]};type=image/${exts[$i]}" )"
+    $DEBUG && echo $IMAGERESP
+    if [[ -z $IMAGELIST ]]
+    then
+        IMAGELIST="$IMAGERESP"
+    else
+        IMAGELIST="$IMAGELIST,$IMAGERESP"
+    fi
+done
+
+$DEBUG && echo "Images list: $IMAGELIST"
 
 echo "Thinking of a witty post title..."
 POSTTITLE="$(meow "$TITLEREGEXP")"
@@ -142,9 +161,10 @@ POSTTEXT="$(meow "$CATREGEXP")"
 $DEBUG && echo $POSTTITLE
 $DEBUG && echo $POSTTEXT
 
-POSTDATA='{"id":null,"uuid":"'"$(uuidgen)"'","source":"beekeeper","created":"'"$(date -Is)"'","edited":null,"user_id":"61dcadf1-0297-430d-ab42-24fe42336202","name":"5","display_name":"Sir Fluffington","display_name_extension":null,"avatar":"https://d4up58j5h8ukq.cloudfront.net/ec4ef9f1-f54b-4e0a-8c98-afc9aa0a9033","comment_count":0,"comments":[],"liked_by_user":false,"sticky":false,"locked":false,"unread":false,"reported_by_user":false,"subscribed_by_user":false,"like_count":0,"anonymous":true,"report_count":0,"digest":0,"scheduled_at":null,"isPoll":false,"text":"'"$POSTTEXT"'","title":"'"$POSTTITLE"'","labels":[],"options":[],"streamid":'"$STREAMID"',"twitter":false,"facebook":false,"links":[],"status":"prepared","mentions":[],"mention_details":{},"media":['"$IMAGERESP"'],"byUser":true}'
+POSTDATA='{"id":null,"uuid":"'"$(uuidgen)"'","source":"beekeeper","created":"'"$(date -Is)"'","edited":null,"user_id":"61dcadf1-0297-430d-ab42-24fe42336202","name":"5","display_name":"Sir Fluffington","display_name_extension":null,"avatar":"https://d4up58j5h8ukq.cloudfront.net/ec4ef9f1-f54b-4e0a-8c98-afc9aa0a9033","comment_count":0,"comments":[],"liked_by_user":false,"sticky":false,"locked":false,"unread":false,"reported_by_user":false,"subscribed_by_user":false,"like_count":0,"anonymous":true,"report_count":0,"digest":0,"scheduled_at":null,"isPoll":false,"text":"'"$POSTTEXT"'","title":"'"$POSTTITLE"'","labels":[],"options":[],"streamid":'"$STREAMID"',"twitter":false,"facebook":false,"links":[],"status":"prepared","mentions":[],"mention_details":{},"media":['"$IMAGELIST"'],"byUser":true}'
 
 echo "Posting..."
-curl $( $DEBUG || echo '-s') 'http'$( $HTTPS && echo s )'://'"$TENANTURL"'/api/2/posts' "${CURLOPTS[@]}" -H 'Content-Type: application/json' --data-binary "$POSTDATA" > $( $DEBUG && echo "-" || echo "/dev/null") || echo 'Oh no!'
+resp="$(curl $( $DEBUG || echo '-s') 'http'$( $HTTPS && echo s )'://'"$TENANTURL"'/api/2/posts' "${CURLOPTS[@]}" -H 'Content-Type: application/json' --data-binary "$POSTDATA" )"
+$DEBUG && echo "$resp"
 
 echo "Done!"
