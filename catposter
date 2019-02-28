@@ -22,7 +22,7 @@ print_usage(){
 
 DEBUG="false"
 HTTPS="true"
-while getopts 'h?dum:l:c:s:t:p:' opt
+while getopts 'h?duCI:m:l:c:s:t:p:' opt
 do
     case "$opt" in
     h|\?)
@@ -48,10 +48,16 @@ do
         TITLEREGEXP="$OPTARG"
         ;;
     u)
-	HTTPS="false"
+        HTTPS="false"
+        ;;
+    C)
+        CHAT="true"
+        ;;
+    I)
+        CHATID="$OPTARG"
         ;;
     d)
-	DEBUG="true"
+        DEBUG="true"
         ;;
     esac
 done
@@ -87,73 +93,77 @@ sel=$(( RANDOM % 10 ))
 num_img=1
 exts=('dummy')
 
-case "$sel" in
+if not $CHAT
+then
+
+    case "$sel" in
 # Cat API
-0|1|2|3|4|6|7|8|9)
-    num_img=$(( RANDOM % 4 % 3 + 1 ))
-    for i in $( seq 1 $num_img )
-    do
-        echo "Downloading image..."
-        IMAGEURL="$( curl $( $DEBUG || echo '-s') http://thecatapi.com/api/images/get?format=xml\&type=png\&api_key=MTQwMTIy | grep -oe '<url>.*</url>' | sed -e 's/<url>//g' -e 's/<\/url>//g' )"
-        ext="$( echo $IMAGEURL | sed -e 's/.*\.//' )"
-        wget --quiet "$IMAGEURL" -O image$i."$ext"
-        $DEBUG && echo "It's a $ext image!"
-        exts+=("$ext")
-    done
-    ;;
+    0|1|2|3|4|6|7|8|9)
+        num_img=$(( RANDOM % 4 % 3 + 1 ))
+        for i in $( seq 1 $num_img )
+        do
+            echo "Downloading image..."
+            IMAGEURL="$( curl $( $DEBUG || echo '-s') http://thecatapi.com/api/images/get?format=xml\&type=png\&api_key=MTQwMTIy | grep -oe '<url>.*</url>' | sed -e 's/<url>//g' -e 's/<\/url>//g' )"
+            ext="$( echo $IMAGEURL | sed -e 's/.*\.//' )"
+            wget --quiet "$IMAGEURL" -O image$i."$ext"
+            $DEBUG && echo "It's a $ext image!"
+            exts+=("$ext")
+        done
+        ;;
 
 # GaMERCaT
-30)
-    echo "Today, I'll do a GaMERCaT post."
-    while :
+    30)
+        echo "Today, I'll do a GaMERCaT post."
+        while :
+        do
+            year="$( $DIR/webls http://thegamercat.com/wp-content/uploads/ | shuf -n 1 )"
+            month="$( $DIR/webls "$year" | shuf -n 1 )"
+            img="$( $DIR/webls "$month" | grep -P 'gamercat[^/]*\.(jpg|png|gif)' | grep -vP '\d\dx\d\d' | shuf -n 1 )"
+            if [[ -n $img ]]
+            then
+                break
+            fi
+        done
+
+        ext="$( echo $img | sed -e 's/.*\.//' )"
+        wget -O image1.$ext -q $img
+        exts+=("$ext")
+        ;;
+    5)
+        echo "Let's do Business Cat today."
+        while :
+        do
+            year="$( $DIR/webls http://www.businesscat.happyjar.com/wp-content/uploads/ | grep -P '\d\d\d\d' | shuf -n 1 )"
+            month="$( $DIR/webls "$year" | shuf -n 1 )"
+            img="$( $DIR/webls "$month" | grep -vP '\d\dx\d\d' | grep -vP '_...?(-.{1,4})?\.' | shuf -n 1 )"
+            if [[ -n $img ]]
+            then
+                break
+            fi
+        done
+
+        ext="$( echo $img | sed -e 's/.*\.//' )"
+        wget -O image1.$ext -q $img
+        exts+=("$ext")
+        ;;
+    esac
+
+    echo "Uploading image..."
+    for i in $( seq 1 $num_img )
     do
-        year="$( $DIR/webls http://thegamercat.com/wp-content/uploads/ | shuf -n 1 )"
-        month="$( $DIR/webls "$year" | shuf -n 1 )"
-        img="$( $DIR/webls "$month" | grep -P 'gamercat[^/]*\.(jpg|png|gif)' | grep -vP '\d\dx\d\d' | shuf -n 1 )"
-        if [[ -n $img ]]
+        $DEBUG && echo Uploading ${exts[$i]} image
+        IMAGERESP="$( curl $( $DEBUG || echo '-s' ) 'http'$( $HTTPS && echo s)'://'"$TENANTURL"'/api/2/photos.json?response=html' "${CURLOPTS[@]}" -H 'Content-Type: multipart/form-data; boundary=----WebKitFormBoundary0AiRf8qodrGlBEb2' -F "photo=@image$i.${exts[$i]};type=image/${exts[$i]}" )"
+        $DEBUG && echo $IMAGERESP
+        if [[ -z $IMAGELIST ]]
         then
-            break
+            IMAGELIST="$IMAGERESP"
+        else
+            IMAGELIST="$IMAGELIST,$IMAGERESP"
         fi
     done
 
-    ext="$( echo $img | sed -e 's/.*\.//' )"
-    wget -O image1.$ext -q $img
-    exts+=("$ext")
-    ;;
-5)
-    echo "Let's do Business Cat today."
-    while :
-    do
-        year="$( $DIR/webls http://www.businesscat.happyjar.com/wp-content/uploads/ | grep -P '\d\d\d\d' | shuf -n 1 )"
-        month="$( $DIR/webls "$year" | shuf -n 1 )"
-        img="$( $DIR/webls "$month" | grep -vP '\d\dx\d\d' | grep -vP '_...?(-.{1,4})?\.' | shuf -n 1 )"
-        if [[ -n $img ]]
-        then
-            break
-        fi
-    done
-
-    ext="$( echo $img | sed -e 's/.*\.//' )"
-    wget -O image1.$ext -q $img
-    exts+=("$ext")
-    ;;
-esac
-
-echo "Uploading image..."
-for i in $( seq 1 $num_img )
-do
-    $DEBUG && echo Uploading ${exts[$i]} image
-    IMAGERESP="$( curl $( $DEBUG || echo '-s' ) 'http'$( $HTTPS && echo s)'://'"$TENANTURL"'/api/2/photos.json?response=html' "${CURLOPTS[@]}" -H 'Content-Type: multipart/form-data; boundary=----WebKitFormBoundary0AiRf8qodrGlBEb2' -F "photo=@image$i.${exts[$i]};type=image/${exts[$i]}" )"
-    $DEBUG && echo $IMAGERESP
-    if [[ -z $IMAGELIST ]]
-    then
-        IMAGELIST="$IMAGERESP"
-    else
-        IMAGELIST="$IMAGELIST,$IMAGERESP"
-    fi
-done
-
-$DEBUG && echo "Images list: $IMAGELIST"
+    $DEBUG && echo "Images list: $IMAGELIST"
+fi
 
 echo "Thinking of a witty post title..."
 POSTTITLE="$(meow "$TITLEREGEXP")"
@@ -161,10 +171,18 @@ POSTTEXT="$(meow "$CATREGEXP")"
 $DEBUG && echo $POSTTITLE
 $DEBUG && echo $POSTTEXT
 
-POSTDATA='{"id":null,"uuid":"'"$(uuidgen)"'","source":"beekeeper","created":"'"$(date -Is)"'","edited":null,"user_id":"61dcadf1-0297-430d-ab42-24fe42336202","name":"5","display_name":"Sir Fluffington","display_name_extension":null,"avatar":"https://d4up58j5h8ukq.cloudfront.net/ec4ef9f1-f54b-4e0a-8c98-afc9aa0a9033","comment_count":0,"comments":[],"liked_by_user":false,"sticky":false,"locked":false,"unread":false,"reported_by_user":false,"subscribed_by_user":false,"like_count":0,"anonymous":true,"report_count":0,"digest":0,"scheduled_at":null,"isPoll":false,"text":"'"$POSTTEXT"'","title":"'"$POSTTITLE"'","labels":[],"options":[],"streamid":'"$STREAMID"',"twitter":false,"facebook":false,"links":[],"status":"prepared","mentions":[],"mention_details":{},"media":['"$IMAGELIST"'],"byUser":true}'
+if $CHAT
+then
+    echo "Chatting..."
 
-echo "Posting..."
-resp="$(curl $( $DEBUG || echo '-s') 'http'$( $HTTPS && echo s )'://'"$TENANTURL"'/api/2/posts' "${CURLOPTS[@]}" -H 'Content-Type: application/json' --data-binary "$POSTDATA" )"
-$DEBUG && echo "$resp"
+    POSTDATA='{"text":"'"$POSTTEXT"'","photos":[],"files":[],"uuid":"'"$(uuidgen)"'","conversationid":"'"$CHATID"'","byUser":true,"isEvent":false}'
+    resp="$(curl $( $DEBUG || echo '-s') 'http'$( $HTTPS && echo s )'://'"$TENANTURL"'/api/2/conversations/'"$CHATID"'/messages' "${CURLOPTS[@]}" -H 'Content-Type: application/json' --data-binary "$POSTDATA" )"
+    $DEBUG && echo "$resp"
+else
+    POSTDATA='{"id":null,"uuid":"'"$(uuidgen)"'","source":"beekeeper","created":"'"$(date -Is)"'","edited":null,"user_id":"61dcadf1-0297-430d-ab42-24fe42336202","name":"5","display_name":"Sir Fluffington","display_name_extension":null,"avatar":"https://d4up58j5h8ukq.cloudfront.net/ec4ef9f1-f54b-4e0a-8c98-afc9aa0a9033","comment_count":0,"comments":[],"liked_by_user":false,"sticky":false,"locked":false,"unread":false,"reported_by_user":false,"subscribed_by_user":false,"like_count":0,"anonymous":true,"report_count":0,"digest":0,"scheduled_at":null,"isPoll":false,"text":"'"$POSTTEXT"'","title":"'"$POSTTITLE"'","labels":[],"options":[],"streamid":'"$STREAMID"',"twitter":false,"facebook":false,"links":[],"status":"prepared","mentions":[],"mention_details":{},"media":['"$IMAGELIST"'],"byUser":true}'
+    echo "Posting..."
+    resp="$(curl $( $DEBUG || echo '-s') 'http'$( $HTTPS && echo s )'://'"$TENANTURL"'/api/2/posts' "${CURLOPTS[@]}" -H 'Content-Type: application/json' --data-binary "$POSTDATA" )"
+    $DEBUG && echo "$resp"
+fi
 
 echo "Done!"
