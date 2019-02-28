@@ -13,6 +13,8 @@ STREAMID="0"
 LOGIN="LOGIN-UUID"
 CSRF="CSRF-TOKEN"
 TENANTURL="TENANT-URL"
+CHAT="false"
+CHATID="0"
 
 [[ -e "$DIR"/config.sh ]] && source "$DIR"/config.sh && echo "Config loaded."
 
@@ -93,7 +95,7 @@ sel=$(( RANDOM % 10 ))
 num_img=1
 exts=('dummy')
 
-if not $CHAT
+if ! $CHAT
 then
 
     case "$sel" in
