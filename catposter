@@ -103,7 +103,7 @@ then
         for i in $( seq 1 $num_img )
         do
             echo "Downloading image..."
-            IMAGEURL="$( curl $( $DEBUG || echo '-s') http://thecatapi.com/api/images/get?format=xml\&type=png\&api_key=MTQwMTIy | grep -oe '<url>.*</url>' | sed -e 's/<url>//g' -e 's/<\/url>//g' )"
+            IMAGEURL="$( curl $( $DEBUG || echo '-s') https://api.thecatapi.com/v1/images/search?format=json\&type=png\&api_key=MTQwMTIy | jq -r .[0].url )"
             ext="$( echo $IMAGEURL | sed -e 's/.*\.//' )"
             wget --quiet "$IMAGEURL" -O image$i."$ext"
             $DEBUG && echo "It's a $ext image!"
