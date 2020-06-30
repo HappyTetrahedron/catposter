@@ -154,7 +154,7 @@ then
     for i in $( seq 1 $num_img )
     do
         $DEBUG && echo Uploading ${exts[$i]} image
-        IMAGERESP="$( curl $( $DEBUG || echo '-s' ) 'http'$( $HTTPS && echo s)'://'"$TENANTURL"'/api/2/photos.json?response=html' "${CURLOPTS[@]}" -H 'Content-Type: multipart/form-data; boundary=----WebKitFormBoundary0AiRf8qodrGlBEb2' -F "photo=@image$i.${exts[$i]};type=image/${exts[$i]}" )"
+        IMAGERESP="$( curl $( $DEBUG || echo '-s' ) 'http'$( $HTTPS && echo s)'://'"$TENANTURL"'/api/2/files' "${CURLOPTS[@]}" -H 'Content-Type: multipart/form-data; boundary=----WebKitFormBoundary0AiRf8qodrGlBEb2' -F "file=@image$i.${exts[$i]};type=image/${exts[$i]}" )"
         $DEBUG && echo $IMAGERESP
         if [[ -z $IMAGELIST ]]
         then
