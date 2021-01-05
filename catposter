@@ -177,11 +177,11 @@ if $CHAT
 then
     echo "Chatting..."
 
-    POSTDATA='{"text":"'"$POSTTEXT"'","photos":[],"files":[],"uuid":"'"$(uuidgen)"'","conversationid":"'"$CHATID"'","byUser":true,"isEvent":false}'
+    POSTDATA='{"text":"'"$POSTTEXT"'","media":[],"files":[],"uuid":"'"$(uuidgen)"'","conversationid":"'"$CHATID"'"}'
     resp="$(curl $( $DEBUG || echo '-s') 'http'$( $HTTPS && echo s )'://'"$TENANTURL"'/api/2/conversations/'"$CHATID"'/messages' "${CURLOPTS[@]}" -H 'Content-Type: application/json' --data-binary "$POSTDATA" )"
     $DEBUG && echo "$resp"
 else
-    POSTDATA='{"id":null,"uuid":"'"$(uuidgen)"'","source":"beekeeper","created":"'"$(date -Is)"'","edited":null,"user_id":"61dcadf1-0297-430d-ab42-24fe42336202","name":"5","display_name":"Sir Fluffington","display_name_extension":null,"avatar":"https://d4up58j5h8ukq.cloudfront.net/ec4ef9f1-f54b-4e0a-8c98-afc9aa0a9033","comment_count":0,"comments":[],"liked_by_user":false,"sticky":false,"locked":false,"unread":false,"reported_by_user":false,"subscribed_by_user":false,"like_count":0,"anonymous":true,"report_count":0,"digest":0,"scheduled_at":null,"isPoll":false,"text":"'"$POSTTEXT"'","title":"'"$POSTTITLE"'","labels":[],"options":[],"streamid":'"$STREAMID"',"twitter":false,"facebook":false,"links":[],"status":"prepared","mentions":[],"mention_details":{},"media":['"$IMAGELIST"'],"byUser":true}'
+    POSTDATA='{"text":"'"$POSTTEXT"'","title":"'"$POSTTITLE"'","labels":[],"options":[],"streamid":'"$STREAMID"',"links":[],"media":['"$IMAGELIST"']}'
     echo "Posting..."
     resp="$(curl $( $DEBUG || echo '-s') 'http'$( $HTTPS && echo s )'://'"$TENANTURL"'/api/2/posts' "${CURLOPTS[@]}" -H 'Content-Type: application/json' --data-binary "$POSTDATA" )"
     $DEBUG && echo "$resp"
