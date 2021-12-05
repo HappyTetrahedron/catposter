@@ -11,7 +11,6 @@ CATREGEXP='(Meow(,? meow){0,4}[.?!] ){1,2}(Pur{2,3} (pur{2,3} ){0,2})?(\\^\\.\\^
 
 STREAMID="0"
 LOGIN="LOGIN-UUID"
-CSRF="CSRF-TOKEN"
 TENANTURL="TENANT-URL"
 CHAT="false"
 CHATID="0"
@@ -19,7 +18,7 @@ CHATID="0"
 [[ -e "$DIR"/config.sh ]] && source "$DIR"/config.sh && echo "Config loaded."
 
 print_usage(){
-    echo "Usage: $0 [-m MEOWREGEX] [-p POSTTITLEREGEX] [-l LOGINTOKEN] [-c CSRFTOKEN] [-s STREAMID] [-t TENANTURL]"
+    echo "Usage: $0 [-m MEOWREGEX] [-p POSTTITLEREGEX] [-l LOGINTOKEN] [-s STREAMID] [-t TENANTURL]"
 }
 
 DEBUG="false"
@@ -36,9 +35,6 @@ do
         ;;
     l) 
         LOGIN="$OPTARG"
-        ;;
-    c)
-        CSRF="$OPTARG"
         ;;
     s)
         STREAMID="$OPTARG"
@@ -80,7 +76,6 @@ script
 $DEBUG && {
 echo CATREGEXP "$CATREGEXP"
 echo LOGIN "$LOGIN"
-echo CSRF "$CSRF"
 echo STREAMID "$STREAMID"
 echo TENANTURL "$TENANTURL"
 echo TITLEREGEXP "$TITLEREGEXP"
@@ -88,7 +83,7 @@ echo HTTPS "$HTTPS"
 echo DEBUG "$DEBUG"
 }
 
-CURLOPTS=(-H 'Cookie: login='"$LOGIN"'' -H 'Origin: http'$( $HTTPS && echo s )'://'"$TENANTURL"'' -H 'X-CSRF-Token: '"$CSRF"'' -H 'Accept-Language: en-US,en;q=0.9' -H 'Authorization: Cookie' -H 'X-Requested-With: XMLHttpRequest' -H 'Connection: keep-alive' -H 'Pragma: no-cache' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36' -H 'X-BKPR-App-Name: app-web' -H 'Accept: application/json' -H 'Cache-Control: no-cache' -H 'Referer: http'$( $HTTPS && echo s)'://'"$TENANTURL"'/stream/random')
+CURLOPTS=(-H 'Authorization: Token '"$LOGIN"'' -H 'Origin: http'$( $HTTPS && echo s )'://'"$TENANTURL"'' -H 'Accept-Language: en-US,en;q=0.9' -H 'Accept: application/json')
 
 
 sel=$(( RANDOM % 10 ))
